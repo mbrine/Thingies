@@ -1,0 +1,415 @@
+<!-- 
+    HOW TO USE:
+        Rename the file to <your channel's name>.html, then add it to your OBS/SLOBS
+        Profit?
+
+    This Text-to-speech browser source was written by mbrine
+    Licence BS and shenanigans aside, just do what ya want with it lol
+    I made this for a friend, then decided to send it to more friends,
+    then realised I should probably make it more user-friendly
+
+    Anyways yay a TTS message reader contained in one HTML file. Enjoy.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
+    <script>
+        // Get the name of the file, use it as the streamer's name
+        var path = window.location.pathname;
+        var filename = path.split("/").pop();
+
+        // Streamer name is always LOWERCASE
+        const streamername = filename.split(".")[0].toLowerCase();
+        console.log( streamername );
+
+        // The volume of the TTS voices
+        const volume = 0.75
+
+        //Users ignored by TTS, make sure it's LOWERCASE
+        const IgnoredUsers = [
+            "fossabot",
+            "streamelements",
+            "nightbot",
+            "commanderroot",
+            "soundalerts",
+            "wizebot",
+            "moobot",
+            "sery_bot",
+            "blerp",
+            "frostytoolsdotcom",
+            "niftehbot",
+            "mouseprower"
+        ]
+
+        /////////////////////////////////
+        ///
+        /// COMFYJS FUNCTIONS BELOW
+        ///
+        //////////////////////////////////
+
+        // Init ComfyJS
+        ComfyJS.Init(streamername);
+
+        // Chat message received event
+        ComfyJS.onChat = (user, message, flags, self, extra) => {
+
+            // Debug log
+            console.log(user, extra);
+
+            // Dollar sign is used for commands here
+            if (message[0] == '$') {
+                if (user == "mbrine" || user == streamername) {
+
+                    // Split the message byu its spaces
+                    var comds = message.toLowerCase().split(' ');
+
+                    // Ignore user with the given name
+                    if (comds[0] == "$ignore" || comds[0] == "$ign") {
+                        IgnoredUsers.push(comds[1].toLowerCase());
+                        console.log(IgnoredUsers);
+                    } 
+                    // Remove most recently ignored user
+                    else if (comds[0] == "$cignore" || comds[0] == "$cign") {
+                        IgnoredUsers.pop();
+                        console.log(IgnoredUsers);
+                    } 
+                    // Refresh the overlay
+                    else if (comds[0] == "$refresh" || comds[0] == "$rf") {
+                        location.reload();
+                    } 
+                    // Toggle TTS on/off
+                    else if (comds[0] == "$toggle") {
+                        autoTTS = !autoTTS;
+                        if (autoTTS)
+                            TTSSay("Text To Speech enabled")
+                        else
+                            TTSSay("Text To Speech disabled")
+                    }
+                }
+            }
+            else {
+                // Not command, not self, and TTS is enabled, save it
+                if (!self && autoTTS) {
+                    SaveMessage(user, message, extra.userColor, extra.messageEmotes);
+                }
+            }
+        }
+
+        // Banned users will get their message cut off, they are also ignored after
+        ComfyJS.onBan = (bannedUsername, extra) => {
+            if (currentmessage != null) {
+                if (currentmessage.name == bannedUsername)
+                    TTSSay("");
+            }
+            IgnoredUsers.push(bannedUsername);
+        }
+        // Timed out users will get their message cut off, they are also ignored after
+        ComfyJS.onTimeout = (timedOutUsername, durationInSeconds, extra) => {
+            if (currentmessage != null) {
+                if (currentmessage.name == timedOutUsername)
+                    TTSSay("");
+            }
+            IgnoredUsers.push(bannedUsername);
+        }
+
+        /////////////////////////////////
+        ///
+        /// TTS FUNCTIONS BELOW
+        ///
+        //////////////////////////////////
+
+        // Store messages to be read out
+        var previousmessages = [];
+
+        // Limit of messages in the quese
+        const messagelimit = 10;
+
+        // Current message to read
+        var currentmessage = null;
+
+        // TTS Enabled
+        var autoTTS = true;
+
+        // TTS Utterance
+        var msg = new SpeechSynthesisUtterance();
+
+        // Username of last chatter
+        var previousName = "";
+
+        // These characters are removed from the message
+        const RemoveChars = [
+            '_',
+        ]
+
+         // Characters that can be read out by TTS, messages that do not contain these will be ignored
+        const ReadableCharacters = [
+            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+            '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+        ]
+
+        // TTS adds a space around these characters
+        // (So stuff like 123 are read as "one two three" instead of "one hundred twenty three")
+        const AddSpaceChars = [
+            '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+        ]
+
+        // TTS adds a period around these characters
+        const AddPeriodChars = [
+        ]
+
+        // This function 
+        msg.addEventListener("end", (event) => {
+            if (autoTTS) {
+                ReadbackFirstMessage();
+            }
+        });
+
+        // Message object, contains the name, message and color seed
+        function Message(name, message, seed = 0) {
+            this.name = name;
+            this.message = message;
+            this.seed = seed;
+        }
+        //Ignores emotes in chat messages
+        function getMessageHTML(message, emotes) {
+            if (!emotes) {
+                return message;
+            }
+
+            // Store all emote keywords
+            const stringReplacements = [];
+
+            // Iterate of emotes to access ids and positions
+            Object.entries(emotes).forEach(([id, positions]) => {
+                // Use only the first position to find out the emote key word
+                const position = positions[0];
+                const [start, end] = position.split("-");
+                const stringToReplace = message.substring(
+                    parseInt(start, 10),
+                    parseInt(end, 10) + 1
+                );
+
+                //Skip emotes that involve special characters
+                if (!/[\(\)\<\>\:\;]/gm.test(stringToReplace)) {
+
+                    stringReplacements.push({
+                        stringToReplace: stringToReplace,
+                        replacement: ` `,
+                    });
+                }
+            });
+            // Replace all emote keywords with nothing
+            var messageHTML = stringReplacements.reduce(
+                (acc, { stringToReplace, replacement }) => {
+                    var re = new RegExp(`\\b(${stringToReplace})\\b`, "gs");
+                    var r = acc.replace(re, replacement);
+                    return r;
+                },
+                message
+            );
+            messageHTML = messageHTML.replace(/[\(\)\<\>\:\;]/gm, "");
+            return messageHTML;
+        }
+
+        // Save a message to the queue
+        function SaveMessage(name, message, color, emotes) {
+            if (IgnoredUsers.includes(name.toLowerCase())) {
+                console.log(name + " IGNORED");
+                return;
+            }
+
+            // Remove emotes
+            message = getMessageHTML(message, emotes);
+
+            // Obtain a seed from user's chat color RGB values
+            var seed = 0;
+            if (color != null) {
+                for (let char of color) {
+                    seed += hexToDecimal(char);
+                }
+            }
+
+            // Push a new Message object to the queue
+            previousmessages.push(new Message(name, message, seed));
+
+            // Remove the first message if over the limit
+            if (previousmessages.length > messagelimit)
+                previousmessages.splice(0, 1);
+
+            // If TTS is not speaking (aka idle)
+            if (!window.speechSynthesis.speaking) {
+                ReadbackFirstMessage();
+            }
+        }
+
+        // Read the first message in the queue
+        function ReadbackFirstMessage() {
+            // Sanity check
+            if (previousmessages.length == 0)
+                return;
+
+            // Assign currentmessage and remove the first message in queue
+            currentmessage = previousmessages[0];
+            previousmessages.splice(0, 1);
+
+            // Call RepeatReadback to read the current message out
+            RepeatReadback();
+        }
+        function RepeatReadback() {
+            // Sanity check
+            if (currentmessage == null)
+                return;
+
+            // Skip reading if this user is ignored
+            if (IgnoredUsers.includes(currentmessage.name.toLowerCase())) {
+                return;
+            }
+
+            // Check if any characters defined in ReadableCharacters exist in the message
+            // NOTE: ALL LOWERCASE
+            var hasreadabletext = false;
+            currentmessage.message = currentmessage.message.toLowerCase();
+            for (let i = 0; i < ReadableCharacters.length; ++i) {
+                if (currentmessage.message.includes(ReadableCharacters[i])) {
+                    hasreadabletext = true;
+                    break;
+                }
+            }
+
+            // No readable text? Don't read!
+            if (!hasreadabletext)
+                return;
+
+            var msg = "";
+            // If the same user sends multiple messages, skip reading their name
+            if (currentmessage.name != previousName)
+            {            
+                // Add a ... after the username to have a pause in the reading
+                msg += currentmessage.name + " ... ";
+            }
+            
+            // Append the message contents
+            msg += currentmessage.message;
+
+            //Assign the previous name
+            previousName = currentmessage.name;
+
+            // TTS Say
+            TTSSay(msg, currentmessage.seed);
+        }
+
+        // Filters all text based on the arrays defined earlier
+        function filterText(text) {
+            var output = text;
+
+            // Replace underscores with nothing
+            while (output.includes("_"))
+                output = output.replace('_', ' ');
+
+            // Remove marked characters
+            for (let i = 0; i < RemoveChars.length; ++i) {
+                while (output.includes(RemoveChars[i]))
+                {                
+                    // Replace with a space
+                    output = output.replace(RemoveChars[i], ' ');
+                } 
+            }
+
+            // Add periods
+            for (let i = 0; i < AddPeriodChars.length; ++i) {
+                output = output.replaceAll(AddPeriodChars[i], '.' + AddPeriodChars[i] + '.');
+            }
+            // Add spaces
+            for (let i = 0; i < AddSpaceChars.length; ++i) {
+                output = output.replaceAll(AddSpaceChars[i], ' ' + AddSpaceChars[i]);
+            }
+
+
+            return output;
+        }
+
+        // Read a text
+        function TTSSay(text, seed = 0) {
+            // Filter the text
+            msg.text = filterText(text);
+
+            // Cancel any current TTS reading
+            window.speechSynthesis.cancel();
+
+            // Set the volume
+            msg.volume = volume;
+
+            // Acquire all voices on the machine
+            let voices = speechSynthesis.getVoices();
+
+            // Unpossible (unless you've uninstalled *every* voice)
+            if (!voices.length) {
+                console.log("NO VOICES!");
+            }
+            else {
+                // Specifically filter for english voices
+                var engvoices = [];
+                for (let v of voices) {
+                    if (v.lang == 'en-US' || v.lang == 'en-UK' || v.lang == 'en-GB') {
+                        engvoices.push(v);
+                    }
+                }
+
+                // Selected voice is the modulo of the seed with the number of voices
+                var sel = seed % engvoices.length;
+                msg.voice = engvoices[sel];
+            }
+
+            // SPEAK.
+            window.speechSynthesis.speak(msg);
+        }
+
+        // Handly little hexadecimal to nimber converter
+        function hexToDecimal(hex) {
+            switch (hex) {
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+                    return Number(hex);
+                    break;
+                case 'A':
+                    return 10;
+                    break;
+                case 'B':
+                    return 11;
+
+                    break;
+                case 'C':
+                    return 12;
+
+                    break;
+                case 'D':
+                    return 13;
+
+                    break;
+                case 'E':
+                    return 14;
+
+                    break;
+                case 'F':
+                    return 15;
+
+                    break;
+            }
+            return 0;
+        }
+    </script>
+</body>
+</html>
