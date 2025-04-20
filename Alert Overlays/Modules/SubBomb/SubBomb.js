@@ -3,13 +3,15 @@
 ///     Registering assets      ///
 ///                             ///
 ///////////////////////////////////
-
+const filePath = function (name) {
+    return "Modules/SubBomb/Source_SubBomb/" + name;
+}
 // Audio to register
-registerAudio("SoundSub1", "SubBomb/Source_SubBomb/Sub_Clean.mp3","mp3");
-registerAudio("SoundExplosion", "SubBomb/Source_SubBomb/explosion.wav", "wav");
+registerAudio("SoundSub1", filePath("Sub_Clean.mp3"),"mp3");
+registerAudio("SoundExplosion", filePath("explosion.wav"), "wav");
 
 // Sprites to load
-loadSprite("Heart", "SubBomb/Source_SubBomb/BleedPurple.png");
+loadSprite("Heart", filePath("BleedPurple.png"));
 
 ///////////////////////////////
 ///                         ///
@@ -161,21 +163,21 @@ function throwSub(type, amount, name, tier, extra) {
 function createSub(x, y, dx, dy, type, amount, name, tier, extra) {
     // Init some variables with default values here
     let scale = 0.2, // Size of the 
-        texPath = 'SubBomb/Source_SubBomb/SubGift.png',
+        texPath = filePath("SubGift.png"),
         mscale = 250,
         mass = 1000;
 
     // Choose the sprite to render based on the subscription type
     switch (type) {
         case 'sub':
-            texPath = 'SubBomb/Source_SubBomb/Sub.png';
+            texPath = filePath("Sub.png");
             scale = 0.2 + amount * 0.02;
             // Prime tier gets a special sprite <3 <3 <3
             if (tier == "Prime")
-                texPath = 'SubBomb/Source_SubBomb/Prime.png';
+                texPath = filePath("Prime.png");
             break;
         case 'gifted':
-            texPath = 'SubBomb/Source_SubBomb/Sub.png';
+            texPath = filePath("Sub.png");
             scale = 0.2 + amount * 0.02;
             break;
         case 'gift':
