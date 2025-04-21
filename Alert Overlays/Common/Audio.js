@@ -11,7 +11,7 @@ function registerAudio(id, filepath, filetype) {
 // Attempts to play an audio clip by ID.
 // Stacking clones the node to allow the audio to stack. May get excessive...
 // Also allows a function to be called upon the audio ending
-function playaudio(name, volume, stacking = false, onfinishedcallback = null) {
+function playAudio(name, volume, stacking = false, onfinishedcallback = null) {
 
     var elem = document.getElementById(name);
     if (elem == null) {

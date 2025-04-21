@@ -114,3 +114,10 @@ function onCommand(message, tags, channel) {
         }
     }
 }
+// Loads a JS file
+function load_js(source) {
+    var head = document.getElementsByTagName('head')[0];
+    var script = document.createElement('script');
+    script.src = source;
+    head.appendChild(script);
+}

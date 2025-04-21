@@ -9,8 +9,8 @@
 
         // TO ENABLE A MODULE, JUST REMOVE THE "//"" BEFORE ITS FOLDER NAME IN THE ARRAY BELOW.
         const modulesToLoad = [
-        'SubBomb',
-        //'Bitsplosion',
+        //'SubBomb',
+        'Bitsplosion',
         ]
     </script>
     <meta charset="UTF-8">
@@ -136,14 +136,9 @@
         /// Module Loader ///
         ///               ///
         /////////////////////
-        function load_js(source) {
-            var head = document.getElementsByTagName('head')[0];
-            var script = document.createElement('script');
-            script.src = 'Modules/'+source + '/' + source + '.js';
-            head.appendChild(script);
-        }
         for (let i = 0; i < modulesToLoad.length; ++i) {
-            load_js(modulesToLoad[i]);
+            var path = 'Modules/' + modulesToLoad[i] + '/' + modulesToLoad[i] + '.js';
+            load_js(path);
         }
     </script>
 </body>
