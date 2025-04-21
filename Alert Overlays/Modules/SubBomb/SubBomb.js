@@ -256,7 +256,7 @@ function createSub(x, y, dx, dy, type, amount, name, tier, extra) {
             // Create an interval to 
             var heartFountainInterval = createHeartFountainScaleInterval(subObject);
 
-            playAudio("SoundSub1");
+            playAudio("SoundSub1", 1.0, true);
 
             // This timeout is when the Sub Object expires
             setTimeout(function () {
@@ -286,7 +286,7 @@ function createSub(x, y, dx, dy, type, amount, name, tier, extra) {
                     effects.push(p);
                 }
 
-                playAudio("SoundExplosion", 0.05);
+                playAudio("SoundExplosion", 0.05, true);
             }, amount * 1000 + 5000);
             break;
         case 'gifted':
@@ -315,11 +315,11 @@ function createSub(x, y, dx, dy, type, amount, name, tier, extra) {
                     effects.push(p);
                 }
 
-                playAudio("SoundExplosion", 0.2);
+                playAudio("SoundExplosion", 0.2, true);
             }, amount * 1000 + 5000);
             break;
         case 'gift':
-            playAudio("SoundSub1");
+            playAudio("SoundSub1", 1.0, true);
             // Special setInterval here because we want the hearts to rise up
             var heartFountainInterval = setInterval(function () {
                 var p = new canvasobjects["sprite"](
@@ -368,7 +368,7 @@ function createSub(x, y, dx, dy, type, amount, name, tier, extra) {
                     dirY = Math.sin(deg) * power;
                     createSub(subObject.position.x, subObject.position.y, dirX, dirY, 'gifted', i / 10, gifter, 1, extra);
                 }
-                playAudio("SoundExplosion", 0.1);
+                playAudio("SoundExplosion", 0.1, true);
             }, 5000);
             break;
     }

@@ -31,8 +31,8 @@ function playAudio(name, volume, stacking = false, onfinishedcallback = null) {
     if (stacking) {
         setTimeout(function () {
             e.remove();
-            if (onfinishcallback != null) {
-                onfinishcallback();
+            if (onfinishedcallback) {
+                onfinishedcallback();
             }
         }, elem.duration * 1000);
     }
