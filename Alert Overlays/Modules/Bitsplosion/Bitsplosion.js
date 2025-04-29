@@ -121,7 +121,7 @@ function cheerEvent(amount, forcedtype) {
 
 
         // Pick a random variant from the array
-        var mode = RandomInArray(usableBitsVariants)
+        var mode = randomInArray(usableBitsVariants)
         if (mode == null) {
             console.error("NO BITS MODE FOUND!");
             return;

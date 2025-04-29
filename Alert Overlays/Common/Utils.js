@@ -14,6 +14,19 @@ function hexToRgb(hex) {
         b: parseInt(result[3], 16)
     } : null;
 }
+// Convert hexadecimal color to RGBA
+function hexToRgbA(hex) {
+    var c;
+    if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+        c = hex.substring(1).split('');
+        if (c.length == 3) {
+            c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+        }
+        c = '0x' + c.join('');
+        return [(c >> 16) & 255, (c >> 8) & 255, c & 255, 1];
+    }
+    throw new Error('Bad Hex');
+}
 
 // Return the left, top, width and height of a HTML element.
 // Also the horizontal and vertical centers.
@@ -46,10 +59,6 @@ function getOffset(element, global = false) {
         height: rect.height,
 };
 }
-// Returns a random element in the provided array.
-function RandomInArray(array) {
-    return array[Math.floor(array.length * Math.random())];
-}
 // Returns a random (x,y) point within a HTML element.
 function getRandPoint(element) {
     var r = getOffset(element);
@@ -57,6 +66,10 @@ function getRandPoint(element) {
         x: r.left + randomInRange(0, r.width),
         y: r.top + randomInRange(0, r.height)
     }
+}
+// Returns a random element in the provided array.
+function randomInArray(array) {
+    return array[Math.floor(array.length * Math.random())];
 }
 // Returns a random value between min and max.
 function randomInRange(min, max) {
@@ -96,7 +109,39 @@ function moveTowardsFloat(a, b, amount) {
         return Math.min(a + amount, b);
     }
 }
+// Linearly interpolates a float between two values.
+function lerp(a, b, amount) {
+    return (b - a) * amount + a;
+}
+// Converts degrees to radians.
+function degreesToRadians(degrees) {
+    return degrees * (Math.PI / 180);
+}// Converts radians to degrees.
+function radiansToDegrees(radians) {
+    return radians / (Math.PI / 180);
+}
+// Takes a position and returns an array of points at specified distances away and at the given angle.
+function circlePointDegrees(pos, angle, dist) {
+    return circlePointRadians(pos, degreesToRadians(angle), dist);
+}
+// Same as circlePointDegrees, but takes angle in radians.
+    var _dist = [1];
+    if (dist != null)
+        _dist = dist;
+    var posx = Math.cos(angle);
+    var posy = Math.sin(angle);
 
+    let outarray = [];
+    outarray.length = _dist.length;
+    for (let i = 0; i < _dist.length; ++i) {
+        outarray[i] =
+        {
+            x: pos.x + posx * _dist[i],
+            y: pos.y + posy * _dist[i]
+        };
+    }
+    return outarray;
+}
 // When a chat command is received.
 function onCommand(message, tags, channel) {
     // Allow the streamer (and mbrine because yes) to trigger commands
