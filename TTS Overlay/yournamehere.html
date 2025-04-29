@@ -1,4 +1,4 @@
-<!-- 
+<!--
     HOW TO USE:
         Rename the file to <your channel's name>.html, then add it to your OBS/SLOBS
         Profit?
@@ -24,11 +24,12 @@
         var filename = path.split("/").pop();
 
         // Streamer name is always LOWERCASE
-        const streamername = filename.split(".")[0].toLowerCase();
-        console.log( streamername );
+        const streamerName = filename.split(".")[0].toLowerCase();
+        console.log(streamerName);
 
         // The volume of the TTS voices
         const volume = 0.75
+        const allCapsVolume = 1
 
         //Users ignored by TTS, make sure it's LOWERCASE
         const IgnoredUsers = [
@@ -53,7 +54,7 @@
         //////////////////////////////////
 
         // Init ComfyJS
-        ComfyJS.Init(streamername);
+        ComfyJS.Init(streamerName);
 
         // Chat message received event
         ComfyJS.onChat = (user, message, flags, self, extra) => {
@@ -63,7 +64,7 @@
 
             // Dollar sign is used for commands here
             if (message[0] == '$') {
-                if (user == "mbrine" || user == streamername) {
+                if (user == "mbrine" || user == streamerName) {
 
                     // Split the message byu its spaces
                     var comds = message.toLowerCase().split(' ');
@@ -72,23 +73,23 @@
                     if (comds[0] == "$ignore" || comds[0] == "$ign") {
                         IgnoredUsers.push(comds[1].toLowerCase());
                         console.log(IgnoredUsers);
-                    } 
+                    }
                     // Remove most recently ignored user
                     else if (comds[0] == "$cignore" || comds[0] == "$cign") {
                         IgnoredUsers.pop();
                         console.log(IgnoredUsers);
-                    } 
+                    }
                     // Refresh the overlay
                     else if (comds[0] == "$refresh" || comds[0] == "$rf") {
                         location.reload();
-                    } 
+                    }
                     // Debug all the voices
                     else if (comds[0] == "$debugvoices") {
                         var voices = getVoices();
                         for (let i = 0; i < voices.length; ++i) {
-                            SaveMessage(user, "VOICE NUMBER: "+i+"! "+message.substring(comds[0].length), i, extra.messageEmotes);
+                            SaveMessage(user, "VOICE NUMBER: " + i + "! " + message.substring(comds[0].length), i, extra.messageEmotes);
                         }
-                    } 
+                    }
                     // Toggle TTS on/off
                     else if (comds[0] == "$toggle") {
                         autoTTS = !autoTTS;
@@ -160,7 +161,7 @@
             '_',
         ]
 
-         // Characters that can be read out by TTS, messages that do not contain these will be ignored
+        // Characters that can be read out by TTS, messages that do not contain these will be ignored
         const ReadableCharacters = [
             'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
             '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
@@ -176,7 +177,7 @@
         const AddPeriodChars = [
         ]
 
-        // This function 
+        // This function
         msg.addEventListener("end", (event) => {
             if (autoTTS) {
                 ReadbackFirstMessage();
@@ -191,42 +192,51 @@
         }
         //Ignores emotes in chat messages
         function getMessageHTML(message, emotes) {
-            if (!emotes) {
-                return message;
-            }
+            var messageHTML = message;
+            if (emotes) {
 
-            // Store all emote keywords
-            const stringReplacements = [];
+                // Store all emote keywords
+                const stringReplacements = [];
 
-            // Iterate of emotes to access ids and positions
-            Object.entries(emotes).forEach(([id, positions]) => {
-                // Use only the first position to find out the emote key word
-                const position = positions[0];
-                const [start, end] = position.split("-");
-                const stringToReplace = message.substring(
-                    parseInt(start, 10),
-                    parseInt(end, 10) + 1
+                // Iterate of emotes to access ids and positions
+                Object.entries(emotes).forEach(([id, positions]) => {
+                    // Use only the first position to find out the emote key word
+                    const position = positions[0];
+                    const [start, end] = position.split("-");
+                    const stringToReplace = message.substring(
+                        parseInt(start, 10),
+                        parseInt(end, 10) + 1
+                    );
+
+                    //Skip emotes that involve special characters
+                    if (!/[\(\)\<\>\:\;]/gm.test(stringToReplace)) {
+
+                        stringReplacements.push({
+                            stringToReplace: stringToReplace,
+                            replacement: ` `,
+                        });
+                    }
+                });
+                // Replace all emote keywords with nothing
+                messageHTML = stringReplacements.reduce(
+                    (acc, { stringToReplace, replacement }) => {
+                        var re = new RegExp(`\\b(${stringToReplace})\\b`, "gs");
+                        var r = acc.replace(re, replacement);
+                        return r;
+                    },
+                    message
                 );
+            }
+            // Link protection
+            messageHTML = messageHTML.replace(/\b(?:https?:\/\/|www\.)[^\s]+/gm, " LINK ");
 
-                //Skip emotes that involve special characters
-                if (!/[\(\)\<\>\:\;]/gm.test(stringToReplace)) {
-
-                    stringReplacements.push({
-                        stringToReplace: stringToReplace,
-                        replacement: ` `,
-                    });
-                }
-            });
-            // Replace all emote keywords with nothing
-            var messageHTML = stringReplacements.reduce(
-                (acc, { stringToReplace, replacement }) => {
-                    var re = new RegExp(`\\b(${stringToReplace})\\b`, "gs");
-                    var r = acc.replace(re, replacement);
-                    return r;
-                },
-                message
-            );
+            // Replaces emoticon characters
             messageHTML = messageHTML.replace(/[\(\)\<\>\:\;]/gm, "");
+
+            // Replace the triple-asterisk with "blocked link"
+            messageHTML = messageHTML.replace(/\*\*\*/gm, " BLOCKED LINK ");
+
+
             return messageHTML;
         }
 
@@ -279,9 +289,9 @@
             // Check if any characters defined in ReadableCharacters exist in the message
             // NOTE: ALL LOWERCASE
             var hasreadabletext = false;
-            currentmessage.message = currentmessage.message.toLowerCase();
+            var lowercasemessage = currentmessage.message.toLowerCase();
             for (let i = 0; i < ReadableCharacters.length; ++i) {
-                if (currentmessage.message.includes(ReadableCharacters[i])) {
+                if (lowercasemessage.includes(ReadableCharacters[i])) {
                     hasreadabletext = true;
                     break;
                 }
@@ -293,12 +303,11 @@
 
             var msg = "";
             // If the same user sends multiple messages, skip reading their name
-            if (currentmessage.name != previousName)
-            {            
+            if (currentmessage.name != previousName) {
                 // Add a ... after the username to have a pause in the reading
                 msg += currentmessage.name + " ... ";
             }
-            
+
             // Append the message contents
             msg += currentmessage.message;
 
@@ -319,11 +328,10 @@
 
             // Remove marked characters
             for (let i = 0; i < RemoveChars.length; ++i) {
-                while (output.includes(RemoveChars[i]))
-                {                
+                while (output.includes(RemoveChars[i])) {
                     // Replace with a space
                     output = output.replace(RemoveChars[i], ' ');
-                } 
+                }
             }
 
             // Add periods
@@ -362,6 +370,10 @@
 
             // Set the volume
             msg.volume = volume;
+
+            // If the message is in all caps, we set the volume to be allCapsVolume
+            if (msg.text.toUpperCase() == msg.text)
+                msg.volume = allCapsVolume;
 
             // Acquire all voices on the machine
             var engvoices = getVoices();
