@@ -82,6 +82,13 @@
                     else if (comds[0] == "$refresh" || comds[0] == "$rf") {
                         location.reload();
                     } 
+                    // Debug all the voices
+                    else if (comds[0] == "$debugvoices") {
+                        var voices = getVoices();
+                        for (let i = 0; i < voices.length; ++i) {
+                            SaveMessage(user, "VOICE NUMBER: "+i+"! "+message.substring(comds[0].length), i, extra.messageEmotes);
+                        }
+                    } 
                     // Toggle TTS on/off
                     else if (comds[0] == "$toggle") {
                         autoTTS = !autoTTS;
@@ -95,7 +102,14 @@
             else {
                 // Not command, not self, and TTS is enabled, save it
                 if (!self && autoTTS) {
-                    SaveMessage(user, message, extra.userColor, extra.messageEmotes);
+                    // Obtain a seed from user's chat color RGB values
+                    var seed = 0;
+                    if (extra.userColor != null) {
+                        for (let char of extra.userColor) {
+                            seed += hexToDecimal(char);
+                        }
+                    }
+                    SaveMessage(user, message, seed, extra.messageEmotes);
                 }
             }
         }
@@ -217,7 +231,7 @@
         }
 
         // Save a message to the queue
-        function SaveMessage(name, message, color, emotes) {
+        function SaveMessage(name, message, seed, emotes) {
             if (IgnoredUsers.includes(name.toLowerCase())) {
                 console.log(name + " IGNORED");
                 return;
@@ -225,14 +239,6 @@
 
             // Remove emotes
             message = getMessageHTML(message, emotes);
-
-            // Obtain a seed from user's chat color RGB values
-            var seed = 0;
-            if (color != null) {
-                for (let char of color) {
-                    seed += hexToDecimal(char);
-                }
-            }
 
             // Push a new Message object to the queue
             previousmessages.push(new Message(name, message, seed));
@@ -332,6 +338,19 @@
 
             return output;
         }
+        function getVoices() {
+            let voices = speechSynthesis.getVoices();
+
+            // Specifically filter for english voices
+            var engvoices = [];
+            for (let v of voices) {
+                if (v.lang == 'en-US' || v.lang == 'en-UK' || v.lang == 'en-GB') {
+                    engvoices.push(v);
+                }
+            }
+
+            return engvoices;
+        }
 
         // Read a text
         function TTSSay(text, seed = 0) {
@@ -345,21 +364,13 @@
             msg.volume = volume;
 
             // Acquire all voices on the machine
-            let voices = speechSynthesis.getVoices();
+            var engvoices = getVoices();
 
             // Unpossible (unless you've uninstalled *every* voice)
-            if (!voices.length) {
+            if (!engvoices.length) {
                 console.log("NO VOICES!");
             }
             else {
-                // Specifically filter for english voices
-                var engvoices = [];
-                for (let v of voices) {
-                    if (v.lang == 'en-US' || v.lang == 'en-UK' || v.lang == 'en-GB') {
-                        engvoices.push(v);
-                    }
-                }
-
                 // Selected voice is the modulo of the seed with the number of voices
                 var sel = seed % engvoices.length;
                 msg.voice = engvoices[sel];
@@ -369,7 +380,7 @@
             window.speechSynthesis.speak(msg);
         }
 
-        // Handly little hexadecimal to nimber converter
+        // Handly little hexadecimal to number converter
         function hexToDecimal(hex) {
             switch (hex) {
                 case '0':
@@ -389,23 +400,18 @@
                     break;
                 case 'B':
                     return 11;
-
                     break;
                 case 'C':
                     return 12;
-
                     break;
                 case 'D':
                     return 13;
-
                     break;
                 case 'E':
                     return 14;
-
                     break;
                 case 'F':
                     return 15;
-
                     break;
             }
             return 0;
